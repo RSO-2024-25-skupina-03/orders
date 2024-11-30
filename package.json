@@ -1,0 +1,25 @@
+{
+  "name": "macje-storitve-narocila",
+  "version": "1.0.0",
+  "description": "mikrostoritev za urejanje narocil spletne trgovine macje-storitve, projekt za predmet RSO",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "test": "docker compose build --no-cache && docker compose up --force-recreate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RSO-2024-25-skupina-03/orders.git"
+  },
+  "author": "macje storitve d.o.o. (nina)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RSO-2024-25-skupina-03/orders/issues"
+  },
+  "homepage": "https://github.com/RSO-2024-25-skupina-03/orders#readme",
+  "dependencies": {
+    "express": "^4.21.1",
+    "mongoose": "^8.8.3"
+  }
+}

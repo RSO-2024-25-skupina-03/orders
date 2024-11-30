@@ -1,0 +1,7 @@
+.git*
+dockerfile
+docker-compose*
+.dockerignore
+package-lock.json
+node_modules
+*.md

@@ -1,0 +1,23 @@
+services:
+  node-api:
+    container_name: orders-app
+    ports:
+      - "3000:3000"
+    image: orders-server
+    build: ./
+    networks:
+      - orders-network
+    environment:
+      - NODE_ENV=test
+      - MONGODB_URI=mongodb://orders-mongo-db:27017/Orders
+  mongo-db:
+    image: mongo
+    container_name: orders-mongo-db
+    ports:
+      - "27017:27017"
+    networks:
+      - orders-network
+networks:
+  orders-network:
+    name: orders-network
+    driver: bridge
