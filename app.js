@@ -1,23 +1,6 @@
 import express from 'express';
 
 /**
- * Create server
- * default port 3000
- */
-const port = process.env.PORT || 3000;
-const app = express();
-
-/**
- * Database connection
- */
-import "./api/models/db.js";
-/**
- * API routing
- */
-import apiRouter from "./api/routes/api.js";
-app.use("/api", apiRouter);
-
-/**
  * Swagger and OpenAPI
  */
 import swaggerJsDoc from "swagger-jsdoc";
@@ -49,19 +32,19 @@ const swaggerDocument = swaggerJsDoc({
         ],
         components: {
             schemas: {
-                Codelist: {
-                    type: "string",
-                    description:
-                        "Allowed values for the codelist used in filtering locations.",
-                    enum: [
-                        "category",
-                        "type",
-                        "keywords",
-                        "institution",
-                        "municipality",
-                        "fields",
-                    ],
-                },
+                // Codelist: {
+                //     type: "string",
+                //     description:
+                //         "Allowed values for the codelist used in filtering locations.",
+                //     enum: [
+                //         "category",
+                //         "type",
+                //         "keywords",
+                //         "institution",
+                //         "municipality",
+                //         "fields",
+                //     ],
+                // },
                 ErrorMessage: {
                     type: "object",
                     properties: {
@@ -75,18 +58,55 @@ const swaggerDocument = swaggerJsDoc({
             },
         },
     },
-    apis: ["./api/models/orders.js", "./api/controllers/*.js"],
+    apis: ["./api/models/*.js", "./api/controllers/*.js"],
 });
+/**
+ * Database connection
+ */
+import "./api/models/db.js";
+
+/**
+ * Create server
+ * default port 3000
+ */
+const port = process.env.PORT || 3000;
+const app = express();
+
+
+// Use Swagger UI
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+    customCss: '.swagger-ui .topbar { display: none }',
+}));
+
+// Serve Swagger JSON
+app.get('/api/swagger.json', (req, res) => {
+    res.status(200).json(swaggerDocument);
+});
+
+/**
+ * API routing
+ */
+import apiRouter from "./api/routes/api.js";
+app.use("/api", apiRouter);
+
+/**
+ * Swagger file and explorer
+ */
+// apiRouter.get("/swagger.json", (req, res) =>
+//     res.status(200).json(swaggerDocument)
+// );
+// apiRouter.use(
+//     "/docs",
+//     swaggerUi.serve,
+//     swaggerUi.setup(swaggerDocument, {
+//         customCss: ".swagger-ui .topbar { display: none }",
+//     })
+// );
 
 
 // Say hello world when user visits the root URL
 app.get('/', (req, res) => {
     res.send('Hello, this is the root URL of the microservice Orders');
-});
-
-// listen for form submissions to '/submit-form' and respond accordingly.
-app.post('/submit-form', (req, res) => {
-    res.send('Form submitted');
 });
 
 // middleware
@@ -96,19 +116,7 @@ app.use((req, res, next) => {
     next();
 });
 
-/**
- * Swagger file and explorer
- */
-apiRouter.get("/swagger.json", (req, res) =>
-    res.status(200).json(swaggerDocument)
-);
-apiRouter.use(
-    "/docs",
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerDocument, {
-        customCss: ".swagger-ui .topbar { display: none }",
-    })
-);
+
 
 
 // listen for requests on port 

@@ -88,6 +88,24 @@ const orderReadOne = (req, res) => {
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
  */
+const vendorOrders = (req, res) => {
+    try {
+        Order.find({ vendor: req.params.vendorId })
+            .exec((err, orders) => {
+                if (!orders) {
+                    return res.status(404).json({
+                        "message": "vendor orders not found"
+                    });
+                } else if (err) {
+                    return res.status(404).json(err);
+                }
+                res.status(200).json(orders);
+            });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
 
 /**
  * @openapi
@@ -124,6 +142,24 @@ const orderReadOne = (req, res) => {
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
  */
+const buyerOrders = (req, res) => {
+    try {
+        Order.find({ buyer: req.params.buyerId })
+            .exec((err, orders) => {
+                if (!orders) {
+                    return res.status(404).json({
+                        "message": "buyer orders not found"
+                    });
+                } else if (err) {
+                    return res.status(404).json(err);
+                }
+                res.status(200).json(orders);
+            });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
 
 /**
  * @openapi
@@ -157,6 +193,23 @@ const orderReadOne = (req, res) => {
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
  */
+const orderCreate = async (req, res) => {
+    try {
+        const order = await Order.create({
+            buyerId: req.body.buyer,
+            sellerId: req.body.vendor,
+            name: req.body.products,
+            price: req.body.total,
+            quantity: req.body.quantity,
+            date: req.body.date,
+            address: req.body.address,
+            status: req.body.status
+        });
+        res.status(201).json(order);
+    } catch (err) {
+        res.status(400).json(err);
+    }
+}
 
 /**
  * @openapi
@@ -203,63 +256,6 @@ const orderReadOne = (req, res) => {
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
  */
-
-const vendorOrders = (req, res) => {
-    try {
-        Order.find({ vendor: req.params.vendorId })
-            .exec((err, orders) => {
-                if (!orders) {
-                    return res.status(404).json({
-                        "message": "vendor orders not found"
-                    });
-                } else if (err) {
-                    return res.status(404).json(err);
-                }
-                res.status(200).json(orders);
-            });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
-const buyerOrders = (req, res) => {
-    try {
-        Order.find({ buyer: req.params.buyerId })
-            .exec((err, orders) => {
-                if (!orders) {
-                    return res.status(404).json({
-                        "message": "buyer orders not found"
-                    });
-                } else if (err) {
-                    return res.status(404).json(err);
-                }
-                res.status(200).json(orders);
-            });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
-
-
-
-const orderCreate = async (req, res) => {
-    try {
-        const order = await Order.create({
-            buyerId: req.body.buyer,
-            sellerId: req.body.vendor,
-            name: req.body.products,
-            price: req.body.total,
-            quantity: req.body.quantity,
-            date: req.body.date,
-            address: req.body.address,
-            status: req.body.status
-        });
-        res.status(201).json(order);
-    } catch (err) {
-        res.status(400).json(err);
-    }
-}
-
 const orderUpdateOne = (req, res) => {
     try {
         if (!req.params.orderId) {
