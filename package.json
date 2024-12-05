@@ -20,6 +20,8 @@
   "homepage": "https://github.com/RSO-2024-25-skupina-03/orders#readme",
   "dependencies": {
     "express": "^4.21.1",
-    "mongoose": "^8.8.3"
+    "mongoose": "^8.8.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   }
 }
