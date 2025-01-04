@@ -2,52 +2,144 @@ import Order from "../models/orders.js";
 
 /**
  * @openapi
- * /orders/{orderId}:
- *  get:
- *   summary: Get an order by ID
- *  tags: [Order]
- *  parameters:
+ * /checkout/{userId}:
+ *  post:
+ *   summary: Checkout, create orders for all products in the cart and call stock service to update stock
+ *   tags: [Order]
+ *   parameters:
  *    - in: path
- *      name: orderId
+ *      name: userId
  *      schema:
  *        type: string
  *      required: true
- *      description: Order ID
- *  responses:
- *   '200':
- *     description: A successful response
+ *      description: User ID
+ *      example: "000000000000000000000002"
+ *   requestBody:
+ *    required: true
+ *    content:
+ *     application/json:
+ *      schema:
+ *       type: object
+ *       properties:
+ *        address:
+ *         type: string
+ *         description: The address of the order delivery
+ *         example: "123 Main St, New York, NY 10001"
+ *        cart:
+ *         type: array
+ *         items:
+ *          type: object
+ *          properties:
+ *           productId:
+ *            type: string
+ *            description: The product ID
+ *            example: "000000000000000000000001"
+ *           quantity:
+ *            type: number
+ *            description: The quantity of the product
+ *            example: 2
+ *   responses:
+ *    '201':
+ *     description: Order created successfully
  *     content:
  *      application/json:
  *       schema:
- *        $ref: '#/components/schemas/Order'
- *   '404':
- *     description: Order not found
+ *        type: array
+ *        items:
+ *         $ref: '#/components/schemas/Order'
+ *    '400':
+ *     description: Bad request
  *     content:
  *      application/json:
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
- *   '500':
+ *    '500':
  *     description: Internal server error
  *     content:
  *      application/json:
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
  */
-const orderReadOne = (req, res) => {
+
+const checkout = async (req, res) => {
     try {
-        Order.findById(req.params.orderId)
-            .exec((err, order) => {
-                if (!order) {
-                    return res.status(404).json({
-                        "message": (req.params.orderId.toString() + "order not found")
-                    });
-                } else if (err) {
-                    return res.status(404).json(err);
-                }
-                res.status(200).json(order);
+        if (!req.params.userId) {
+            return res.status(400).json({ message: "userId required" });
+        }
+        if (!req.body.address) {
+            return res.status(400).json({ message: "address required" });
+        }
+        if (!req.body.cart) {
+            return res.status(400).json({ message: "cart required" });
+        }
+        const orderList = [];
+        for (const item of req.body.cart) {
+            const order = {
+                type: "stocked",
+                buyerId: req.params.userId,
+                sellerId: item.sellerId,
+                productId: item.productId,
+                quantity: item.quantity,
+                address: req.body.address,
+                status: "pending",
+            };
+            const newOrder = await Order.create(order);
+            orderList.push(newOrder);
+        }
+        res.status(201).json(orderList);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+}
+
+/**
+ * @openapi
+ * /order/{orderId}:
+ *  get:
+ *   summary: Get an order by ID
+ *   tags: [Order]
+ *   parameters:
+ *    - in: path
+ *      name: orderId
+ *      schema:
+ *        type: string
+ *      required: true
+ *      description: Order ID
+ *      example: "100000000000000000000000"
+ *   responses:
+ *    '200':
+ *     description: A successful response
+ *     content:
+ *      application/json:
+ *       schema:
+ *        $ref: '#/components/schemas/Order'
+ *    '404':
+ *     description: Order not found
+ *     content:
+ *      application/json:
+ *       schema:
+ *        $ref: '#/components/schemas/ErrorMessage'
+ *    '500':
+ *     description: Internal server error
+ *     content:
+ *      application/json:
+ *       schema:
+ *        $ref: '#/components/schemas/ErrorMessage'
+ */
+const orderReadOne = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.orderId).exec();
+        console.log(req.params.orderId);
+        console.log(order);
+        if (!order) {
+            return res.status(404).json({
+                "message": ("order with id" + req.params.orderId.toString() + "not found")
             });
-    }catch(err){
-        res.status(500).json({message: err.message});
+        }
+        res.status(200).json(order);
+
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 }
 
@@ -66,6 +158,7 @@ const orderReadOne = (req, res) => {
  *        type: string
  *      required: true
  *      description: Vendor ID
+ *      example: "000000000000000000000001"
  *   responses:
  *    '200':
  *     description: A successful response
@@ -88,19 +181,16 @@ const orderReadOne = (req, res) => {
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
  */
-const vendorOrders = (req, res) => {
+const vendorOrders = async (req, res) => {
     try {
-        Order.find({ vendor: req.params.vendorId })
-            .exec((err, orders) => {
-                if (!orders) {
-                    return res.status(404).json({
-                        "message": "vendor orders not found"
-                    });
-                } else if (err) {
-                    return res.status(404).json(err);
-                }
-                res.status(200).json(orders);
+        const orders = await Order.find({ sellerId: req.params.vendorId }).exec();
+        if (!orders) {
+            return res.status(404).json({
+                "message": "vendor orders not found"
             });
+        }
+        res.status(200).json(orders);
+
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -120,6 +210,7 @@ const vendorOrders = (req, res) => {
  *        type: string
  *      required: true
  *      description: Buyer ID
+ *      example: "000000000000000000000002"
  *   responses:
  *    '200':
  *     description: A successful response
@@ -142,19 +233,16 @@ const vendorOrders = (req, res) => {
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
  */
-const buyerOrders = (req, res) => {
+const buyerOrders = async (req, res) => {
     try {
-        Order.find({ buyer: req.params.buyerId })
-            .exec((err, orders) => {
-                if (!orders) {
-                    return res.status(404).json({
-                        "message": "buyer orders not found"
-                    });
-                } else if (err) {
-                    return res.status(404).json(err);
-                }
-                res.status(200).json(orders);
+        const orders = await Order.find({ buyerId: req.params.buyerId }).exec();
+        if (!orders) {
+            return res.status(404).json({
+                "message": "buyer orders not found"
             });
+        }
+        res.status(200).json(orders);
+
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -170,7 +258,7 @@ const buyerOrders = (req, res) => {
  *   requestBody:
  *    required: true
  *    content:
- *     application/json:
+ *     application/x-www-form-urlencoded:
  *      schema:
  *       $ref: '#/components/schemas/Order'
  *   responses:
@@ -195,19 +283,51 @@ const buyerOrders = (req, res) => {
  */
 const orderCreate = async (req, res) => {
     try {
-        const order = await Order.create({
-            buyerId: req.body.buyer,
-            sellerId: req.body.vendor,
-            name: req.body.products,
-            price: req.body.total,
+        console.log(req.body);
+        if (!req.body.buyerId || req.body.buyerId.length !== 24) {
+            return res.status(400).json({ message: "buyerId required and must have 24 digits" });
+        }
+        if (!req.body.sellerId || req.body.sellerId.length !== 24) {
+            return res.status(400).json({ message: "sellerId required and must have 24 digits" });
+        }
+        if (!req.body.quantity) {
+            return res.status(400).json({ message: "quantity required" });
+        }
+        if (!req.body.address) {
+            return res.status(400).json({ message: "address required" });
+        }
+        if (!req.body.status) {
+            return res.status(400).json({ message: "status required" });
+        }
+        if (!req.body.type) {
+            return res.status(400).json({ message: "type required" });
+        }
+
+        const newOrder = {
+            buyerId: req.body.buyerId,
+            sellerId: req.body.sellerId,
+            name: req.body.name,
             quantity: req.body.quantity,
-            date: req.body.date,
             address: req.body.address,
-            status: req.body.status
-        });
+            status: req.body.status,
+            type: req.body.type,
+        }
+        if (req.body.date) {
+            newOrder.date = req.body.date;
+        }
+        if (req.body.productId) {
+            newOrder.productId = req.body.productId;
+        }
+        if (req.body.description) {
+            newOrder.description = req.body.description;
+        }
+        if (req.body.price) {
+            newOrder.price = req.body.price;
+        }
+        const order = await Order.create(newOrder);
         res.status(201).json(order);
     } catch (err) {
-        res.status(400).json(err);
+        res.status(500).json({ message: err.message });
     }
 }
 
@@ -256,34 +376,37 @@ const orderCreate = async (req, res) => {
  *       schema:
  *        $ref: '#/components/schemas/ErrorMessage'
  */
-const orderUpdateOne = (req, res) => {
+const orderUpdateOne = async (req, res) => {
     try {
         if (!req.params.orderId) {
             return res.status(404).json({
                 "message": "orderId required"
             });
         }
-        Order.findById(req.params.orderId)
-            .exec((err, order) => {
-                if (!order) {
-                    return res.status(404).json({
-                        "message": "orderId not found"
-                    });
-                } else if (err) {
-                    return res.status(404).json(err);
-                }
-                order.buyer = req.body.buyer;
-                order.vendor = req.body.vendor;
-                order.products = req.body.products;
-                order.total = req.body.total;
-                order.save((err, order) => {
-                    if (err) {
-                        res.status(404).json(err);
-                    } else {
-                        res.status(200).json(order);
-                    }
-                });
+        const order = await Order.findById(req.params.orderId).exec();
+        if (!order) {
+            return res.status(404).json({
+                "message": "orderId not found"
             });
+        }
+
+        if (req.body.buyerId) order.buyerId = req.body.buyerId;
+        if (req.body.sellerId) order.sellerId = req.body.sellerId;
+        if (req.body.productId) order.productId = req.body.productId;
+        if (req.body.description) order.description = req.body.description;
+        if (req.body.price) order.price = req.body.price;
+        if (req.body.quantity) order.quantity = req.body.quantity;
+        if (req.body.date) order.date = req.body.date
+        if (req.body.address) order.address = req.body.address;
+        if (req.body.status) order.status = req.body.status;
+
+        const savedOrder = await order.save();
+        if (!savedOrder) {
+            return res.status(400).json({ message: "order not updated" });
+        } else {
+            res.status(200).json(savedOrder);
+        }
+
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -294,5 +417,6 @@ export default {
     vendorOrders,
     buyerOrders,
     orderCreate,
-    orderUpdateOne
+    orderUpdateOne,
+    checkout
 };

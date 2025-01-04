@@ -1,4 +1,5 @@
 import express from 'express';
+import bodyParser from 'body-parser';
 
 /**
  * Swagger and OpenAPI
@@ -9,7 +10,7 @@ const swaggerDocument = swaggerJsDoc({
     definition: {
         openapi: "3.1.0",
         info: {
-            title: "Demo",
+            title: "Macje storitve - Orders",
             version: "0.1.0",
             description:
                 "API for the microservice Orders",
@@ -83,6 +84,20 @@ app.get('/api/swagger.json', (req, res) => {
     res.status(200).json(swaggerDocument);
 });
 
+// middleware
+// log the request method and URL for every request
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
+/**
+ * Body parser (application/x-www-form-urlencoded)
+ * must be before the routes
+ */
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
 /**
  * API routing
  */
@@ -109,12 +124,6 @@ app.get('/', (req, res) => {
     res.send('Hello, this is the root URL of the microservice Orders');
 });
 
-// middleware
-// log the request method and URL for every request
-app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
-    next();
-});
 
 
 

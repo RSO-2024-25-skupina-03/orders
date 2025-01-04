@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Mongoose } from 'mongoose';
 
 /**
  * @openapi
@@ -11,12 +11,19 @@ import mongoose from 'mongoose';
  *      buyerId:
  *        type: string
  *        description: The buyer's ID
+ *        example: "000000000000000000000002"
  *      sellerId:
  *        type: string
  *        description: The seller's ID
- *      name:
+ *        example: "000000000000000000000001"
+ *      productId:
  *        type: string
- *        description: The name of the product
+ *        description: The product's ID
+ *        example: "000000000000000000000003"
+ *      description:
+ *        type: string
+ *        description: The description of the product
+ *        example: "This is a product"
  *      price:
  *        type: number
  *        description: The price of the product
@@ -34,21 +41,30 @@ import mongoose from 'mongoose';
  *        type: string
  *        enum: [pending, accepted, completed, cancelled]
  *        description: The status of the order
+ *      type:
+ *        type: string
+ *        enum: [stocked, custom]
+ *        description: The type of the order
  *    required:
  *      - buyerId
  *      - sellerId
- *      - name
- *      - price
  *      - quantity
  *      - address
  *      - status
+ *      - type
  */
 
 const orderSchema = new mongoose.Schema({
+    type: { 
+        type: String, 
+        required: [true, 'type is required'],
+        enum: ['stocked', 'custom'],
+    },
     buyerId: { type: String, required: [true, 'buyerId is required'] },
     sellerId: { type: String, required: [true, 'sellerId is required'] },
-    name: { type: String, required: [true, 'name is required'] },
-    price: { type: Number, required: [true, 'price is required'] },
+    productId: { type: String },
+    description: { type: String },
+    price: { type: Number },
     quantity: { type: Number, required: [true, 'quantity is required'] },
     date: { type: Date, "default": Date.now },
     address: { type: String, required: [true, 'address is required'] },
