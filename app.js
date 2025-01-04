@@ -19,7 +19,11 @@ const swaggerDocument = swaggerJsDoc({
             {
                 name: "Order",
                 description: "Product order",
-            }
+            },
+            {
+                name: "Health",
+                description: "Health check",
+            },
         ],
         servers: [
             {
@@ -84,6 +88,20 @@ app.get('/api/swagger.json', (req, res) => {
     res.status(200).json(swaggerDocument);
 });
 
+
+// Create swagger.json file
+// import fs from 'fs';
+// import path from 'path';
+// import { fileURLToPath } from 'url';
+// import { dirname } from 'path';
+
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = dirname(__filename);
+
+// const swaggerJsonPath = path.join(__dirname, 'swagger.json');
+// fs.writeFileSync(swaggerJsonPath, JSON.stringify(swaggerDocument, null, 2), 'utf-8');
+// console.log(`Swagger JSON file created at ${swaggerJsonPath}`);
+
 // middleware
 // log the request method and URL for every request
 app.use((req, res, next) => {
@@ -104,20 +122,6 @@ app.use(bodyParser.json());
 import apiRouter from "./api/routes/api.js";
 app.use("/api", apiRouter);
 
-/**
- * Swagger file and explorer
- */
-// apiRouter.get("/swagger.json", (req, res) =>
-//     res.status(200).json(swaggerDocument)
-// );
-// apiRouter.use(
-//     "/docs",
-//     swaggerUi.serve,
-//     swaggerUi.setup(swaggerDocument, {
-//         customCss: ".swagger-ui .topbar { display: none }",
-//     })
-// );
-
 
 // Say hello world when user visits the root URL
 app.get('/', (req, res) => {
@@ -125,11 +129,33 @@ app.get('/', (req, res) => {
 });
 
 
-
+// Error handling middleware
+// should be added after all other routes and middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Internal Server Error' });
+});
 
 
 // listen for requests on port 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
 
+// Graceful shutdown
+import { gracefulShutdown } from "./api/models/db.js";
+
+const shutdown = (msg) => {
+    console.log(`${msg} signal received: closing HTTP server Orders`);
+    server.close(() => {
+        console.log('HTTP server closed');
+        // Call the gracefulShutdown function from db.js
+        gracefulShutdown(msg, () => process.exit(0));
+    });
+};
+
+process.on('SIGTERM', () => shutdown('Cloud-based app shutdown (SIGTERM)'));
+process.on('SIGINT', () => shutdown('app termination (SIGINT)'));
+process.once('SIGUSR2', () => {
+    gracefulShutdown('nodemon restart', () => process.kill(process.pid, 'SIGUSR2'));
+});

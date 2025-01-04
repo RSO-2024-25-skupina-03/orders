@@ -24,17 +24,9 @@ const gracefulShutdown = async (msg, callback) => {
     console.log(`Mongoose disconnected through ${msg}.`);
     callback();
 };
-process.once("SIGUSR2", () => {
-    gracefulShutdown("nodemon restart", () =>
-        process.kill(process.pid, "SIGUSR2")
-    );
-});
-process.on("SIGINT", () => {
-    gracefulShutdown("app termination", () => process.exit(0));
-});
-process.on("SIGTERM", () => {
-    gracefulShutdown("Cloud-based app shutdown", () => process.exit(0));
-});
+
 
 // BRING IN YOUR SCHEMAS & MODELS
 import "./orders.js";
+
+export { gracefulShutdown };
