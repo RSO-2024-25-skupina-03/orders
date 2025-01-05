@@ -5,7 +5,7 @@ let dbURI = "mongodb://orders-mongo-db/Orders";
 if (process.env.NODE_ENV === "production")
     dbURI = process.env.MONGODB_PROD_URI;
   else if (process.env.NODE_ENV === "test") 
-    dbURI = "mongodb://orders-mongo-db/TestOrders";
+    dbURI = process.env.MONGODB_URI;
 mongoose.connect(dbURI);
 
 // CONNECTION EVENTS LOGS

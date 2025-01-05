@@ -8,15 +8,15 @@ import mongoose, { Mongoose } from 'mongoose';
  *    type: object
  *    description: An order
  *    properties:
- *      buyerId:
+ *      buyer_id:
  *        type: string
  *        description: The buyer's ID
  *        example: "000000000000000000000002"
- *      sellerId:
+ *      seller_id:
  *        type: string
  *        description: The seller's ID
  *        example: "000000000000000000000001"
- *      productId:
+ *      product_id:
  *        type: string
  *        description: The product's ID
  *        example: "000000000000000000000003"
@@ -46,8 +46,8 @@ import mongoose, { Mongoose } from 'mongoose';
  *        enum: [stocked, custom]
  *        description: The type of the order
  *    required:
- *      - buyerId
- *      - sellerId
+ *      - buyer_id
+ *      - seller_id
  *      - quantity
  *      - address
  *      - status
@@ -60,9 +60,9 @@ const orderSchema = new mongoose.Schema({
         required: [true, 'type is required'],
         enum: ['stocked', 'custom'],
     },
-    buyerId: { type: String, required: [true, 'buyerId is required'] },
-    sellerId: { type: String, required: [true, 'sellerId is required'] },
-    productId: { type: String },
+    buyer_id: { type: String, required: [true, 'buyer_id is required'] },
+    seller_id: { type: String, required: [true, 'seller_id is required'] },
+    product_id: { type: String },
     description: { type: String },
     price: { type: Number },
     quantity: { type: Number, required: [true, 'quantity is required'] },

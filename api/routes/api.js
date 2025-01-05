@@ -3,12 +3,12 @@ const router = Router();
 import ctrlOrders from "../controllers/orders.js";
 import healthcheck from "../controllers/healthcheck.js";
 
-router.post("/checkout/:userId", ctrlOrders.checkout);
-router.get("/order/:orderId", ctrlOrders.orderReadOne);
-router.get("/vendor_orders/:vendorId", ctrlOrders.vendorOrders);
-router.get("/buyer_orders/:buyerId", ctrlOrders.buyerOrders);
+router.post("/checkout/:user_id", ctrlOrders.checkout);
+router.get("/order/:order_id", ctrlOrders.orderReadOne);
+router.get("/vendor_orders/:seller_id", ctrlOrders.vendorOrders);
+router.get("/buyer_orders/:buyer_id", ctrlOrders.buyerOrders);
 router.post("/order", ctrlOrders.orderCreate);
-router.put("/order/:orderId", ctrlOrders.orderUpdateOne);
+router.put("/order/:order_id", ctrlOrders.orderUpdateOne);
 router.get("/health", healthcheck);
 
 

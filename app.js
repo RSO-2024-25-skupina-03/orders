@@ -30,6 +30,9 @@ const swaggerDocument = swaggerJsDoc({
                 url: "http://localhost:3000/api",
                 description: "Development server for testing",
             },
+            {
+                url: "http://localhost:8001/api",
+            }
             // {
             //     url: "https://sp-2024-2025.fly.dev/api",
             //     description: "Production server",
@@ -70,13 +73,15 @@ const swaggerDocument = swaggerJsDoc({
  */
 import "./api/models/db.js";
 
+
+
+
 /**
  * Create server
  * default port 3000
  */
 const port = process.env.PORT || 3000;
 const app = express();
-
 
 // Use Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
