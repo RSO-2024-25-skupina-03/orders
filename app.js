@@ -33,26 +33,9 @@ const swaggerDocument = swaggerJsDoc({
             {
                 url: "http://localhost:8001/api",
             }
-            // {
-            //     url: "https://sp-2024-2025.fly.dev/api",
-            //     description: "Production server",
-            // },
         ],
         components: {
             schemas: {
-                // Codelist: {
-                //     type: "string",
-                //     description:
-                //         "Allowed values for the codelist used in filtering locations.",
-                //     enum: [
-                //         "category",
-                //         "type",
-                //         "keywords",
-                //         "institution",
-                //         "municipality",
-                //         "fields",
-                //     ],
-                // },
                 ErrorMessage: {
                     type: "object",
                     properties: {
@@ -82,6 +65,12 @@ import "./api/models/db.js";
  */
 const port = process.env.PORT || 3000;
 const app = express();
+
+import cors from 'cors';
+if(process.env.NODE_ENV === 'test') {
+    console.log('Running in test environment');
+    app.use(cors());
+}
 
 // Use Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {

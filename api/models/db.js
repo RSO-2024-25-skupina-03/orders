@@ -1,4 +1,9 @@
 import mongoose from 'mongoose';
+/**
+ * Load environment variables
+ */
+import dotenv from "dotenv";
+dotenv.config();
 
 // TODO: REPLACE WITH ACTUAL MONGODB URI
 let dbURI = "mongodb://orders-mongo-db/Orders";
