@@ -73,12 +73,12 @@ if(process.env.NODE_ENV === 'test') {
 }
 
 // Use Swagger UI
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+app.use('/api/orders/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
     customCss: '.swagger-ui .topbar { display: none }',
 }));
 
 // Serve Swagger JSON
-app.get('/api/swagger.json', (req, res) => {
+app.get('/api/orders/swagger.json', (req, res) => {
     res.status(200).json(swaggerDocument);
 });
 
