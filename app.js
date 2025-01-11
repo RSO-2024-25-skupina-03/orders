@@ -6,56 +6,7 @@ import bodyParser from 'body-parser';
  */
 import swaggerJsDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
-const getSwaggerOptions = (req) => {
-    const protocol = req.protocol;
-    const host = req.get('host');
-    const baseUrl = `${protocol}://${host}`;
-    return {
-        definition: {
-            openapi: "3.1.0",
-            info: {
-                title: "Macje storitve - Orders",
-                version: "0.1.0",
-                description:
-                    "API for the microservice Orders",
-            },
-            tags: [
-                {
-                    name: "Order",
-                    description: "Product order",
-                },
-                {
-                    name: "Health",
-                    description: "Health check",
-                },
-            ],
-            servers: [
-                {
-                    url: "http://localhost:3000",
-                    description: "Development server for testing",
-                },
-                {
-                    url: "http://localhost:8001",
-                }
-            ],
-            components: {
-                schemas: {
-                    ErrorMessage: {
-                        type: "object",
-                        properties: {
-                            message: {
-                                type: "string",
-                                description: "Message describing the error.",
-                            },
-                        },
-                        required: ["message"],
-                    },
-                },
-            },
-        },
-        apis: ["./api/models/*.js", "./api/controllers/*.js"],
-    };
-};
+
 
 /**
  * Database connection
@@ -77,22 +28,6 @@ if (process.env.NODE_ENV === 'test') {
     console.log('Running in test environment');
     app.use(cors());
 }
-
-// Use Swagger UI
-app.use('/docs', swaggerUi.serve, (req, res, next) => {
-    const swaggerOptions = getSwaggerOptions(req);
-    const swaggerDocs = swaggerJsDoc(swaggerOptions);
-    swaggerUi.setup(swaggerDocs, {
-        customCss: '.swagger-ui .topbar { display: none }',
-    })(req, res, next);
-});
-
-// Serve Swagger JSON
-app.get('/swagger.json', (req, res) => {
-    const swaggerOptions = getSwaggerOptions(req);
-    const swaggerDocs = swaggerJsDoc(swaggerOptions);
-    res.status(200).json(swaggerDocs);
-});
 
 
 // Create swagger.json file
@@ -126,8 +61,27 @@ app.use(bodyParser.json());
  * API routing
  */
 import apiRouter from "./api/routes/api.js";
+import swaggerRouter, { forwardedPrefixSwagger, getSwaggerOptions } from "./api/routes/swaggerRouter.js";
 app.use("/", apiRouter);
+app.use("/", swaggerRouter);
 
+// Middleware to redirect /docs to /docs/
+app.use('/docs', (req, res, next) => {
+    if (req.originalUrl === '/docs') {
+        res.redirect('/docs/');
+    } else {
+        next();
+    }
+});
+
+// Use Swagger UI
+app.use('/docs', forwardedPrefixSwagger, swaggerUi.serve, (req, res, next) => {
+    const swaggerOptions = getSwaggerOptions(req);
+    const swaggerDocs = swaggerJsDoc(swaggerOptions);
+    swaggerUi.setup(swaggerDocs, {
+        customCss: '.swagger-ui .topbar { display: none }',
+    })(req, res, next);
+});
 
 // Say hello world when user visits the root URL
 app.get('/', (req, res) => {

@@ -143,12 +143,14 @@ const checkout = async (req, res) => {
         if (!req.body.address) {
             return res.status(400).json({ message: "address required" });
         }
-        if (!req.body.cart) {
-            return res.status(400).json({ message: "cart required" });
-        }
+        
+        //get cart from cart microservice
+        const cartUrl = 'http://cart:8080/' + req.params.user_id;
+        const cartResponse = await fetch(cartUrl);
+
         const orderList = [];
         const sentMessages = [];
-        for (const item of req.body.cart) {
+        for (const item of cartResponse) {
             const order = {
                 type: "stocked",
                 buyer_id: req.params.user_id,
