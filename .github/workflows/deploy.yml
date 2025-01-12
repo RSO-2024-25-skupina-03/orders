@@ -34,7 +34,7 @@ jobs:
         run: docker-compose build
 
       - name: Start Docker containers
-        run: docker-compose up
+        run: docker-compose up --detach
 
       - name: Wait for services to be ready
         run: |
