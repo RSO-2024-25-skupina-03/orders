@@ -22,12 +22,19 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+      
+      - name: Install Compose
+        uses: ndeloof/install-compose-action@v0.0.1
+        with:
+          version: v2.1.0 # defaults to 'latest'
+          legacy: true    # will also install in PATH as `docker-compose`
+      - run: docker-compose --version
 
       - name: Build Docker images
         run: docker-compose build
 
       - name: Start Docker containers
-        run: docker-compose up -d
+        run: docker-compose up
 
       - name: Wait for services to be ready
         run: |
