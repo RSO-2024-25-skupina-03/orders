@@ -1,4 +1,4 @@
-name: Build and push to ACR
+name: Build, test, and push to ACR
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   deploy:
-    name: build and push to ACR 
+    name: build, test, and push to ACR 
     runs-on: ubuntu-latest
 
     defaults:
@@ -23,8 +23,24 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Build Docker images
+        run: docker-compose build
+
+      - name: Start Docker containers
+        run: docker-compose up -d
+
+      - name: Wait for services to be ready
+        run: |
+          while ! curl -s http://localhost:3000/health; do
+            echo "Waiting for the app to be ready..."
+            sleep 5
+          done
+
       - name: Run tests
         run: npm test
+
+      - name: Stop Docker containers
+        run: docker-compose down
 
       - name: Azure Docker login
         uses: docker/login-action@v3
