@@ -96,23 +96,6 @@ const sendMessage = async (queueName, message) => {
  *         type: string
  *         description: The address of the order delivery
  *         example: "123 Main St, New York, NY 10001"
- *        cart:
- *         type: array
- *         items:
- *          type: object
- *          properties:
- *           seller_id:
- *            type: string
- *            description: The seller ID
- *            example: "000000000000000000000001"
- *           product_id:
- *            type: string
- *            description: The product ID
- *            example: "000000000000000000000005"
- *           quantity:
- *            type: number
- *            description: The quantity of the product
- *            example: 2
  *   responses:
  *    '201':
  *     description: Order created successfully
@@ -160,12 +143,14 @@ const checkout = async (req, res) => {
         if (!req.body.address) {
             return res.status(400).json({ message: "address required" });
         }
-        if (!req.body.cart) {
-            return res.status(400).json({ message: "cart required" });
-        }
+        
+        //get cart from cart microservice
+        const cartUrl = 'http://cart:8080/' + req.params.user_id;
+        const cartResponse = await fetch(cartUrl);
+
         const orderList = [];
         const sentMessages = [];
-        for (const item of req.body.cart) {
+        for (const item of cartResponse) {
             const order = {
                 type: "stocked",
                 buyer_id: req.params.user_id,
