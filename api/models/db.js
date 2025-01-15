@@ -3,35 +3,54 @@ import mongoose from 'mongoose';
  * Load environment variables
  */
 import dotenv from "dotenv";
+import orderSchema from './orders';
 dotenv.config();
 
-// TODO: REPLACE WITH ACTUAL MONGODB URI
-let dbURI = "mongodb://orders-mongo-db/Orders";
-if (process.env.NODE_ENV === "production")
-    dbURI = process.env.MONGODB_PROD_URI;
-  else if (process.env.NODE_ENV === "test") 
-    dbURI = process.env.MONGODB_URI;
-mongoose.connect(dbURI);
+const connections = {};
 
-// CONNECTION EVENTS LOGS
-mongoose.connection.on("connected", () =>
-    console.log(`Mongoose connected to ${dbURI}.`)
-);
-mongoose.connection.on("error", (err) =>
-    console.log(`Mongoose connection error: ${err}.`)
-);
-mongoose.connection.on("disconnected", () =>
-    console.log("Mongoose disconnected")
-);
+const connectToDatabase = async (dbName) => {
+    if (connections[dbName]) return connections[dbName];
 
-const gracefulShutdown = async (msg, callback) => {
-    await mongoose.connection.close();
-    console.log(`Mongoose disconnected through ${msg}.`);
-    callback();
+    let dbURI = `mongodb://mongo:27017/${dbName}`;
+
+    // TODO: REPLACE WITH ACTUAL MONGODB URI
+    if (process.env.NODE_ENV === "production")
+        dbURI = process.env.MONGODB_PROD_URI + "/" + dbName;
+    else if (process.env.NODE_ENV === "test")
+        dbURI = process.env.MONGODB_URI + "/" + dbName;
+
+    const connection = await mongoose.createConnection(dbURI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    // CONNECTION EVENTS LOGS
+    mongoose.connection.on("connected", () =>
+        console.log(`Mongoose connected to ${dbURI}.`)
+    );
+    mongoose.connection.on("error", (err) =>
+        console.log(`Mongoose connection error: ${err}.`)
+    );
+    mongoose.connection.on("disconnected", () =>
+        console.log("Mongoose disconnected")
+    );
+
+    connections[dbName] = connection;
+    return connection;
 };
 
 
-// BRING IN YOUR SCHEMAS & MODELS
-import "./orders.js";
+const gracefulShutdown = async (msg, callback) => {
+    for (const dbName in connections) {
+        await connections[dbName].close();
+        console.log(`Mongoose disconnected from ${dbName} through ${msg}.`);
+    }
+    callback();
+};
 
-export { gracefulShutdown };
+const getOrderModel = async (dbName) => {
+    const connection = await connectToDatabase(dbName);
+    return connection.model('Order', orderSchema, 'Orders');
+};
+
+export { gracefulShutdown, getOrderModel };
