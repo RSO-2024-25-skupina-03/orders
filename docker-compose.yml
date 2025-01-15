@@ -9,7 +9,7 @@ services:
       - orders-network
     environment:
       - NODE_ENV=test
-      - MONGODB_URI=mongodb://orders-mongo-db:27017/Orders
+      - MONGODB_URI=mongodb://orders-mongo-db:27017
   mongo-db:
     image: mongo
     container_name: orders-mongo-db

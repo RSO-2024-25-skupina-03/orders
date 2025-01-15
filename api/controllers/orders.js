@@ -1,5 +1,7 @@
-import Order from "../models/orders.js";
 import client from 'amqplib';
+import dotenv from "dotenv";
+import getOrderModel from '../models/orders.js';
+dotenv.config();
 
 /**
  * RabbitMQ
@@ -47,8 +49,7 @@ const sendMessage = async (queueName, message) => {
     } catch (error) {
         console.error('Error connecting to RabbitMQ');
         console.error(error);
-        await channel.close();
-        return { status: 'error', type: 'Error connecting to RabbitMQ', message:  message };
+        return { status: 'error', type: 'Error connecting to RabbitMQ', message: message };
     }
 
     try {
@@ -73,11 +74,18 @@ const sendMessage = async (queueName, message) => {
 
 /**
  * @openapi
- * /checkout/{user_id}:
+ * /{tenant}/checkout/{user_id}:
  *  post:
  *   summary: Checkout, create orders for all products in the cart and call stock service to update stock
  *   tags: [Order]
  *   parameters:
+ *    - in: path
+ *      name: tenant
+ *      schema:
+ *        type: string
+ *      required: true
+ *      description: Tenant name
+ *      example: "tenant1"
  *    - in: path
  *      name: user_id
  *      schema:
@@ -135,26 +143,65 @@ const sendMessage = async (queueName, message) => {
  *        $ref: '#/components/schemas/ErrorMessage'
  */
 
+
 const checkout = async (req, res) => {
     try {
+        if (!req.params.tenant) {
+            return res.status(400).json({ message: "tenant required" });
+        }
+        const tenant = req.params.tenant;
         if (!req.params.user_id) {
             return res.status(400).json({ message: "user_id required" });
         }
         if (!req.body.address) {
             return res.status(400).json({ message: "address required" });
         }
-        
-        //get cart from cart microservice
-        const cartUrl = 'http://cart:8080/' + req.params.user_id;
-        const cartResponse = await fetch(cartUrl);
 
+        //get cart from cart microservice
+        const cartUrl = process.env.API_GATEWAY_URL + "/api/cart/" + tenant + "/cart/" + req.params.user_id;
+        const stockUrl = process.env.API_GATEWAY_URL + "/api/stock/" + tenant + "/info/";
+        const cartResponse = await fetch(cartUrl);
+        /*
+            cart example:
+            {
+                "user_id": "1",
+                "contents": [
+                    {
+                        "product_id": "1",
+                        "quantity": 1
+                    },
+                    {
+                        "product_id": "2",
+                        "quantity": 1
+                    },
+                    {
+                        "product_id": "3",
+                        "quantity": 1
+                    }
+                ]
+            }
+        */
         const orderList = [];
         const sentMessages = [];
+
+        const Order = await getOrderModel(tenant);
+
         for (const item of cartResponse) {
+            const stockResponse = await fetch(stockUrl + item.product_id);
+            /*
+            response = {
+                "product_id": "1",
+                "seller_id": "2",
+                "name": "Fjallraven - Foldsack No. 1 Backpack, Fits 15 Laptops",
+                "price": 109.95,
+                "description": "Your perfect pack for everyday use and walks in the forest. Stash your laptop (up to 15 inches) in the padded sleeve, your everyday",
+                "image_b64": "data:image/png;base64,/9j/4AAQSkZJ...
+            }
+            */
             const order = {
                 type: "stocked",
                 buyer_id: req.params.user_id,
-                seller_id: item.seller_id,
+                seller_id: stockResponse.seller_id,
                 product_id: item.product_id,
                 quantity: item.quantity,
                 address: req.body.address,
@@ -166,7 +213,7 @@ const checkout = async (req, res) => {
             sentMessages.push(result);
             orderList.push(newOrder);
         }
-        res.status(201).json({orders: orderList, messages: sentMessages});
+        res.status(201).json({ orders: orderList, messages: sentMessages });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -174,11 +221,18 @@ const checkout = async (req, res) => {
 
 /**
  * @openapi
- * /order/{order_id}:
+ * /{tenant}/order/{order_id}:
  *  get:
  *   summary: Get an order by ID
  *   tags: [Order]
  *   parameters:
+ *    - in: path
+ *      name: tenant
+ *      schema:
+ *        type: string
+ *      required: true
+ *      description: Tenant name
+ *      example: "tenant1"
  *    - in: path
  *      name: order_id
  *      schema:
@@ -208,6 +262,7 @@ const checkout = async (req, res) => {
  */
 const orderReadOne = async (req, res) => {
     try {
+        const Order = await getOrderModel(req.params.tenant);
         const order = await Order.findById(req.params.order_id).exec();
         console.log(req.params.order_id);
         console.log(order);
@@ -227,11 +282,18 @@ const orderReadOne = async (req, res) => {
 
 /**
  * @openapi
- * /vendor_orders/{seller_id}:
+ * /{tenant}/vendor_orders/{seller_id}:
  *  get:
  *   summary: Get orders by vendor ID
  *   tags: [Order]
  *   parameters:
+ *    - in: path
+ *      name: tenant
+ *      schema:
+ *        type: string
+ *      required: true
+ *      description: Tenant name
+ *      example: "tenant1"
  *    - in: path
  *      name: seller_id
  *      schema:
@@ -263,6 +325,7 @@ const orderReadOne = async (req, res) => {
  */
 const vendorOrders = async (req, res) => {
     try {
+        const Order = await getOrderModel(req.params.tenant);
         const orders = await Order.find({ seller_id: req.params.seller_id }).exec();
         if (!orders) {
             return res.status(404).json({
@@ -279,11 +342,18 @@ const vendorOrders = async (req, res) => {
 
 /**
  * @openapi
- * /buyer_orders/{buyer_id}:
+ * /{tenant}/buyer_orders/{buyer_id}:
  *  get:
  *   summary: Get orders by buyer ID
  *   tags: [Order]
  *   parameters:
+ *    - in: path
+ *      name: tenant
+ *      schema:
+ *        type: string
+ *      required: true
+ *      description: Tenant name
+ *      example: "tenant1"
  *    - in: path
  *      name: buyer_id
  *      schema:
@@ -315,6 +385,7 @@ const vendorOrders = async (req, res) => {
  */
 const buyerOrders = async (req, res) => {
     try {
+        const Order = await getOrderModel(req.params.tenant);
         const orders = await Order.find({ buyer_id: req.params.buyer_id }).exec();
         if (!orders) {
             return res.status(404).json({
@@ -331,10 +402,18 @@ const buyerOrders = async (req, res) => {
 
 /**
  * @openapi
- * /order:
+ * /{tenant}/order:
  *  post:
  *   summary: Create a new order, send notification to rabbitMQ
  *   tags: [Order]
+ *   parameters:
+ *    - in: path
+ *      name: tenant
+ *      schema:
+ *        type: string
+ *      required: true
+ *      description: Tenant name
+ *      example: "tenant1"
  *   requestBody:
  *    required: true
  *    content:
@@ -377,6 +456,7 @@ const buyerOrders = async (req, res) => {
  */
 const orderCreate = async (req, res) => {
     try {
+        const Order = await getOrderModel(req.params.tenant);
         console.log(req.body);
         if (!req.body.buyer_id || req.body.buyer_id.length !== 24) {
             return res.status(400).json({ message: "buyer_id required and must have 24 digits" });
@@ -426,7 +506,7 @@ const orderCreate = async (req, res) => {
         const result = await sendMessage('order', message);
         console.log(result);
 
-        res.status(201).json({order: order, message: result});
+        res.status(201).json({ order: order, message: result });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -434,11 +514,18 @@ const orderCreate = async (req, res) => {
 
 /**
  * @openapi
- * /order/{order_id}:
+ * /{tenant}/order/{order_id}:
  *  put:
  *   summary: Update an existing order
  *   tags: [Order]
  *   parameters:
+ *    - in: path
+ *      name: tenant
+ *      schema:
+ *        type: string
+ *      required: true
+ *      description: Tenant name
+ *      example: "tenant1"
  *    - in: path
  *      name: order_id
  *      schema:
@@ -494,6 +581,7 @@ const orderCreate = async (req, res) => {
  */
 const orderUpdateOne = async (req, res) => {
     try {
+        const Order = await getOrderModel(req.params.tenant);
         if (!req.params.order_id) {
             return res.status(404).json({
                 "message": "order_id required"
@@ -523,7 +611,7 @@ const orderUpdateOne = async (req, res) => {
             const message = createMessage(savedOrder._id, savedOrder.buyer_id, savedOrder.seller_id);
             const result = await sendMessage('order', message);
             console.log(result);
-            res.status(200).json({order: savedOrder, message: result});
+            res.status(200).json({ order: savedOrder, message: result });
         }
 
     } catch (err) {

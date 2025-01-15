@@ -1,10 +1,11 @@
-import mongoose from 'mongoose';
 /**
  * Load environment variables
  */
 import dotenv from "dotenv";
-import orderSchema from './orders';
 dotenv.config();
+
+import mongoose from 'mongoose';
+
 
 const connections = {};
 
@@ -48,9 +49,6 @@ const gracefulShutdown = async (msg, callback) => {
     callback();
 };
 
-const getOrderModel = async (dbName) => {
-    const connection = await connectToDatabase(dbName);
-    return connection.model('Order', orderSchema, 'Orders');
-};
 
-export { gracefulShutdown, getOrderModel };
+
+export { gracefulShutdown, connectToDatabase };

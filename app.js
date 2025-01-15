@@ -7,15 +7,6 @@ import bodyParser from 'body-parser';
 import swaggerJsDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
-
-/**
- * Database connection
- */
-import "./api/models/db.js";
-
-
-
-
 /**
  * Create server
  * default port 3000

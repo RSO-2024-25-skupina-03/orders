@@ -1,4 +1,5 @@
 import mongoose, { Mongoose } from 'mongoose';
+import { connectToDatabase } from './db.js';
 
 /**
  * @openapi
@@ -75,4 +76,9 @@ const orderSchema = new mongoose.Schema({
     },
 });
 
-export default orderSchema;
+const getOrderModel = async (dbName) => {
+    const connection = await connectToDatabase(dbName);
+    return connection.model('Order', orderSchema, 'Orders');
+};
+
+export default getOrderModel;
