@@ -9,6 +9,10 @@ import { connectToDatabase } from './db.js';
  *    type: object
  *    description: An order
  *    properties:
+ *      _id:
+ *        type: string
+ *        description: The auto-generated ID of the order
+ *        example: "000000000000000000000001"
  *      buyer_id:
  *        type: string
  *        description: The buyer's ID
