@@ -213,6 +213,14 @@ const checkout = async (req, res) => {
             sentMessages.push(result);
             orderList.push(newOrder);
         }
+
+        const response = await fetch(cartUrl, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            return res.status(500).json({ message: "Error deleting cart" });
+        }
+
         res.status(201).json({ orders: orderList, messages: sentMessages });
     } catch (err) {
         res.status(500).json({ message: err.message });
