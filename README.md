@@ -3,4 +3,6 @@ Orders is a microservice for the cloud-native application Macje storitve d.o.o. 
 
 You can run it using docker by executing `docker compose up`
 
-The OpenAPI documentation can then be opened at localhost:3000/api/docs
+The OpenAPI documentation can then be opened at localhost:3000/docs
+
+To test all the features locally use the docker-compose.yml that is in docker-compose repository
