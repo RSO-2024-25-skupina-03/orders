@@ -1,6 +1,8 @@
-import client from 'amqplib';
-import dotenv from "dotenv";
 import getOrderModel from '../models/orders.js';
+import client from 'amqplib';
+import axios from 'axios';
+import dotenv from "dotenv";
+
 dotenv.config();
 
 /**
@@ -157,10 +159,28 @@ const checkout = async (req, res) => {
             return res.status(400).json({ message: "address required" });
         }
 
-        //get cart from cart microservice
-        const cartUrl = process.env.API_GATEWAY_URL + "/api/cart/" + tenant + "/cart/" + req.params.user_id;
-        const stockUrl = process.env.API_GATEWAY_URL + "/api/stock/" + tenant + "/info/";
-        const cartResponse = await fetch(cartUrl);
+        // Get cart from cart microservice
+        // const cartUrl = `http://localhost/api/cart/${tenant}/cart/${req.params.user_id}`;
+        // const stockUrl = `http://localhost/api/stock/${tenant}/info/`;
+
+        const cartUrl = `http://cart:8080/${tenant}/cart/${req.params.user_id}`;
+
+        let cartResponse;
+        try {
+            cartResponse = await axios.get(cartUrl, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: `Fetch to cart failed for ${cartUrl}: ${error.message}` });
+        }
+
+        if (cartResponse.status !== 200) {
+            console.error(cartResponse.statusText);
+            return res.status(500).json({ message: `Failed to fetch cart: ${cartResponse.statusText}` });
+        }
         /*
             cart example:
             {
@@ -186,8 +206,35 @@ const checkout = async (req, res) => {
 
         const Order = await getOrderModel(tenant);
 
-        for (const item of cartResponse) {
-            const stockResponse = await fetch(stockUrl + item.product_id);
+        for (const item of cartResponse.data.contents) {
+            const stockUrl = `http://stock:8080/${tenant}/info/${item.product_id}`;
+            console.log(`Fetching stock from URL: ${stockUrl}`);
+
+            let stockResponse;
+            try {
+                stockResponse = await axios.get(stockUrl, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                console.log(`Stock response: ${JSON.stringify(stockResponse.data)}`);
+            } catch (error) {
+                console.error(`Error fetching stock: ${error.message}`);
+                return res.status(500).json({ message: `Fetch to stock failed for ${stockUrl}: ${error.message}` });
+            }
+
+            if (stockResponse.status !== 200) {
+                console.error(`Failed to fetch stock: ${stockResponse.statusText}`);
+                return res.status(500).json({ message: `Failed to fetch stock: ${stockResponse.statusText}` });
+            }
+
+            // Ensure seller_id is present in the stockResponse
+            if (!stockResponse.data.seller_id) {
+                console.error(`seller_id is missing in stock response`);
+                return res.status(500).json({ message: `seller_id is missing in stock response` });
+            }
+
+            const seller_id = stockResponse.data.seller_id;
             /*
             response = {
                 "product_id": "1",
@@ -201,24 +248,27 @@ const checkout = async (req, res) => {
             const order = {
                 type: "stocked",
                 buyer_id: req.params.user_id,
-                seller_id: stockResponse.seller_id,
+                seller_id: seller_id,
                 product_id: item.product_id,
                 quantity: item.quantity,
                 address: req.body.address,
                 status: "pending",
             };
             const newOrder = await Order.create(order);
-            const message = createMessage(newOrder._id, req.params.user_id, item.seller_id);
+            const message = createMessage(newOrder._id, req.params.user_id, seller_id);
             const result = await sendMessage('order', message);
             sentMessages.push(result);
             orderList.push(newOrder);
         }
 
-        const response = await fetch(cartUrl, {
-            method: 'DELETE'
-        });
-        if (!response.ok) {
-            return res.status(500).json({ message: "Error deleting cart" });
+        let deleteResponse;
+        try {
+            deleteResponse = await axios.delete(cartUrl);
+        } catch (error) {
+            return res.status(500).json({ message: `Fetch to delete cart failed for ${cartUrl}: ${error.message}` });
+        }
+        if (deleteResponse.status !== 200) {
+            return res.status(500).json({ message: `Failed to delete cart: ${deleteResponse.statusText}` });
         }
 
         res.status(201).json({ orders: orderList, messages: sentMessages });
