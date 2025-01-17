@@ -524,11 +524,11 @@ const orderCreate = async (req, res) => {
         }
         const Order = await getOrderModel(req.params.tenant);
         console.log(req.body);
-        if (!req.body.buyer_id || req.body.buyer_id.length !== 24) {
-            return res.status(400).json({ message: "buyer_id required and must have 24 digits" });
+        if (!req.body.buyer_id) {
+            return res.status(400).json({ message: "buyer_id requireds" });
         }
-        if (!req.body.seller_id || req.body.seller_id.length !== 24) {
-            return res.status(400).json({ message: "seller_id required and must have 24 digits" });
+        if (!req.body.seller_id) {
+            return res.status(400).json({ message: "seller_id required" });
         }
         if (!req.body.quantity) {
             return res.status(400).json({ message: "quantity required" });
