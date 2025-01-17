@@ -29,16 +29,21 @@ dotenv.config();
  *      type: string
  *      description: The seller ID
  *      example: "000000000000000000000001"
+ *     tenant:
+ *      type: string
+ *      description: The tenant name
+ *      example: "tenant1"
  *     time:
  *      type: string
  *      format: date-time
  *      description: The time the message was created
  */
-const createMessage = (order_id, buyer_id, seller_id) => {
+const createMessage = (order_id, buyer_id, seller_id, tenant) => {
     return JSON.stringify({
         order_id: order_id,
         buyer_id: buyer_id,
         seller_id: seller_id,
+        tenant: tenant,
         time: new Date().toISOString(),
     });
 }
@@ -255,7 +260,7 @@ const checkout = async (req, res) => {
                 status: "pending",
             };
             const newOrder = await Order.create(order);
-            const message = createMessage(newOrder._id, req.params.user_id, seller_id);
+            const message = createMessage(newOrder._id, req.params.user_id, seller_id, tenant);
             const result = await sendMessage('order', message);
             sentMessages.push(result);
             orderList.push(newOrder);
@@ -514,6 +519,9 @@ const buyerOrders = async (req, res) => {
  */
 const orderCreate = async (req, res) => {
     try {
+        if (!req.params.tenant) {
+            return res.status(400).json({ message: "tenant required" });
+        }
         const Order = await getOrderModel(req.params.tenant);
         console.log(req.body);
         if (!req.body.buyer_id || req.body.buyer_id.length !== 24) {
@@ -560,7 +568,7 @@ const orderCreate = async (req, res) => {
         if (!order) {
             return res.status(400).json({ message: "order not created" });
         }
-        const message = createMessage(order._id, req.body.buyer_id, req.body.seller_id);
+        const message = createMessage(order._id, req.body.buyer_id, req.body.seller_id, req.params.tenant);
         const result = await sendMessage('order', message);
         console.log(result);
 
@@ -639,6 +647,9 @@ const orderCreate = async (req, res) => {
  */
 const orderUpdateOne = async (req, res) => {
     try {
+        if (!req.params.tenant) {
+            return res.status(400).json({ message: "tenant required" });
+        }
         const Order = await getOrderModel(req.params.tenant);
         if (!req.params.order_id) {
             return res.status(404).json({
@@ -666,7 +677,7 @@ const orderUpdateOne = async (req, res) => {
         if (!savedOrder) {
             return res.status(400).json({ message: "order not updated" });
         } else {
-            const message = createMessage(savedOrder._id, savedOrder.buyer_id, savedOrder.seller_id);
+            const message = createMessage(savedOrder._id, savedOrder.buyer_id, savedOrder.seller_id, req.params.tenant);
             const result = await sendMessage('order', message);
             console.log(result);
             res.status(200).json({ order: savedOrder, message: result });
